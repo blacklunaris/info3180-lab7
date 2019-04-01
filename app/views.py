@@ -4,9 +4,12 @@ Jinja2 Documentation:    http://jinja.pocoo.org/2/documentation/
 Werkzeug Documentation:  http://werkzeug.pocoo.org/documentation/
 This file creates your application.
 """
-
+import os
 from app import app
-from flask import render_template, request
+from flask import render_template, request, redirect, url_for, flash, session, abort
+from .forms import UploadForm
+from werkzeug.utils import secure_filename
+from flask import jsonify
 
 ###
 # Routing for your application.
@@ -56,7 +59,32 @@ def send_text_file(file_name):
     file_dot_text = file_name + '.txt'
     return app.send_static_file(file_dot_text)
 
+@app.route('/api/upload')
+def upload(file_name):
+    if not session.get('logged_in'):
+        abort(401)
 
+    # Instantiate your form class
+    form=UploadForm()
+    # Validate file upload on submit
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            f = form.photo.data
+            filename = secure_filename(form.fileName.f.filename)
+            f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # Get file data and save to your uploads folder
+        else:
+            return jsonify({
+                "errors":[{},
+                {}
+                ]
+            })
+        flash('File Saved', 'success')
+        return redirect(url_for('home'))
+    return jsonify({
+        'message':"File Upload Successful",
+        'filename': "you-uploaded-file.jpg",
+        'desc': "Some description for your image"})
 @app.after_request
 def add_header(response):
     """
