@@ -59,32 +59,23 @@ def send_text_file(file_name):
     file_dot_text = file_name + '.txt'
     return app.send_static_file(file_dot_text)
 
-@app.route('/api/upload')
-def upload(file_name):
-    if not session.get('logged_in'):
-        abort(401)
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    form = UploadForm()
+    if form.validate_on_submit():
+        photo = form.photo.data
+        description = form.description.data
+        filename = secure_filename(photo.filename)
+        photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-    # Instantiate your form class
-    form=UploadForm()
-    # Validate file upload on submit
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            f = form.photo.data
-            filename = secure_filename(form.fileName.f.filename)
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # Get file data and save to your uploads folder
-        else:
-            return jsonify({
-                "errors":[{},
-                {}
-                ]
-            })
-        flash('File Saved', 'success')
-        return redirect(url_for('home'))
-    return jsonify({
-        'message':"File Upload Successful",
-        'filename': "you-uploaded-file.jpg",
-        'desc': "Some description for your image"})
+        return jsonify({
+            'message': 'File Upload Successful',
+            'filename': filename,
+            'description': description
+        })
+
+    errors = form_errors(form)
+    return jsonify({'errors': errors})
 @app.after_request
 def add_header(response):
     """
